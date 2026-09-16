@@ -1,6 +1,6 @@
 ---
 name: kernel-commit-message
-description: Write or review the commit message for a Linux kernel patch headed upstream — subject line, root-cause narrative, quoted code excerpt, concrete consequence, imperative fix sentence, and trailers (Fixes, Closes, Cc stable, Reported-by, Assisted-by, Signed-off-by). Use when preparing a patch for a kernel mailing list, exporting a vN revision, drafting commit.txt, or auditing an existing message against checkpatch and Documentation/process/submitting-patches.rst.
+description: Write or review the commit message for a Linux kernel patch headed upstream — subject line, root-cause narrative, quoted code excerpt, concrete consequence, user-visible impact and provenance, imperative fix sentence, and trailers (Fixes, Closes, Cc stable, Reported-by, Assisted-by, Signed-off-by). Use when preparing a patch for a kernel mailing list, exporting a vN revision, drafting commit.txt, or auditing an existing message against checkpatch and Documentation/process/submitting-patches.rst.
 ---
 
 # Kernel Commit Message
@@ -12,6 +12,11 @@ who has never seen the reproducer must be able to read the message alone and
 answer: what assumption did the code make, what broke it, and why is the fix
 where it is.
 
+One more question belongs to the maintainer who applies the patch and to
+everyone downstream of him: what does this bug do to a user, and is that worth
+a backport? Andrew Morton applied an ocfs2 fix of ours and then asked for
+exactly this, because the changelog never said. See **Impact and provenance**.
+
 Companion to `linux-kernel-bugfix`, which covers diagnosis and validation. Use
 this one when the analysis is done and the message is being written or reviewed.
 
@@ -19,8 +24,10 @@ this one when the analysis is done and the message is being written or reviewed.
 
 The failure mode of a first draft is not vagueness, it is length. Everything
 learned during debugging wants into the message; almost none of it belongs.
-Aim for **four paragraphs, roughly 25-35 lines of log**, readable start to
+Aim for **five paragraphs, roughly 30-40 lines of log**, readable start to
 finish by a kernel developer who has never opened this filesystem or driver.
+The fifth is the impact paragraph below: two or three sentences, and not
+optional.
 
 Two tests for every sentence before it stays:
 
@@ -44,12 +51,16 @@ What goes, specifically — each of these has had to be trimmed out of a draft:
   number in every message; that produced padding. Include one when it carries
   the mechanism, otherwise leave it in the bug report.
 
+- The reproducer's *itinerary* goes; the fact that a reproducer *exists* does
+  not. "Found by syzkaller, reproducer in the report" is one clause and it
+  stays — see **Impact and provenance**.
+
 Brevity is not vagueness: every claim that survives must still be checkable
 against the source, and the excerpt is what makes it checkable.
 
 ## Shape
 
-Four parts, in this order.
+Five parts, in this order.
 
 1. **Subject** — `subsys: <imperative phrase>`, under 75 chars, no trailing
    period. Name the change, not the symptom: `gfs2: reject rgrp bitmaps that do
@@ -70,7 +81,14 @@ Four parts, in this order.
    — the two or three facts that have to be true at once, stated as facts about
    the code, not as a replay of the reproducer.
 
-4. **The fix, in imperative mood**, one or two sentences. If a reviewer would
+4. **The impact**, two or three sentences. What a user sees when the bug fires
+   — a crash, silent memory corruption, data loss, a hang, a filesystem forced
+   read-only — and what it takes to get there: a crafted image plus
+   CAP_SYS_ADMIN, or an unprivileged syscall, or a specific mount option. Then
+   one clause of provenance, and, when the patch carries `Cc: stable`, one
+   clause saying why it qualifies.
+
+5. **The fix, in imperative mood**, one or two sentences. If a reviewer would
    ask "why is the check *there* and not in that branch?", or if the obvious
    alternative is to revert the commit named in `Fixes:`, answer in half a
    sentence — `rather than making nilfs_clear_folio_dirty() force-clear busy
@@ -78,6 +96,39 @@ Four parts, in this order.
    undo their fix.
 
 Then a blank line, then the trailers.
+
+## Impact and provenance
+
+Andrew Morton asked for this in so many words when he applied an ocfs2 fix of
+ours: "When fixing a bug please always describe the userspace-visible effects
+of that bug." and "Tell us whether it's some LLM-found-this theoretical thing
+or whether it's affecting you in the real world." He had to open the linked
+KASAN report to learn there was a use-after-free at all, and he kept our
+`Cc: stable` with "I'll retain the cc:stable for now, but I don't know why."
+
+Three things, one or two clauses each:
+
+- **Effect.** Name what happens to the machine, not what the sanitiser
+  printed: memory corruption, a crash, data loss, a hang. Make it hold on a
+  kernel built without KASAN too, because that is the kernel users run. A bug
+  that only trips a debug check is a smaller, different claim — say that
+  instead when it is the true one.
+- **Reach.** What it takes to get there. A crafted image plus CAP_SYS_ADMIN is
+  a far weaker claim than an unprivileged syscall, and the people deciding
+  backports need that difference stated, not implied.
+- **Provenance.** Fuzzer or the field, and whether a reproducer exists.
+  "Found by our syzkaller run, not seen in production" is not a weakness to
+  hide: it lets the maintainer judge urgency, and omitting it costs trust when
+  the thread asks anyway.
+
+When a sanitiser title names something the bug is not — KASAN calls any stray
+write that lands on a freed page a use-after-free — correct it here in one
+sentence. The reviewer has already read the title; leaving it uncorrected lets
+a lifetime bug be assumed where there is none.
+
+`Cc: stable` gets its own clause: why this one qualifies. Silence there is
+what produced "I don't know why", and it leaves the maintainer to guess at a
+backport nobody justified.
 
 ## Accuracy traps
 
@@ -220,7 +271,8 @@ working-tree diff:
 
 The shape above, at the length above. Paragraph 1 sets up the assumption for a
 stranger, the excerpt makes it checkable, paragraph 2 is the mechanism with no
-reproducer trivia, paragraph 3 is the fix plus why it is not a revert.
+reproducer trivia, paragraph 3 is the impact with its reach and provenance,
+and paragraph 4 is the fix plus why it is not a revert.
 The whole example is indented here; in the real message only the code
 excerpt is, with a tab.
 
@@ -248,6 +300,14 @@ excerpt is, with a tab.
     block and a locked read-ahead buffer.  Such a folio survives the
     clearing step, and the copy-back warns on it.
 
+    The folio is left dirty with no dirty buffer under it, which no later
+    segment construction cleans up, and on a kernel with panic_on_warn the
+    WARNING takes the machine down.  Reaching it takes the GC ioctl on a
+    mounted nilfs2 filesystem, asked to free a virtual block number the DAT
+    file does not map.  Found by our syzkaller run, reproducer in the
+    report, not seen in production; the fix is small and restores what the
+    rollback path always assumed, so stable trees want it.
+
     Use __nilfs_clear_folio_dirty() to clear the dirty flag of the
     destination folio before overwriting it, rather than making
     nilfs_clear_folio_dirty() force-clear busy buffer heads again.
@@ -261,7 +321,7 @@ excerpt is, with a tab.
 ## Checklist
 
 - Subject names the change, under 75 chars, unchanged from the previous revision.
-- Four paragraphs or fewer; no reproducer itinerary, no stack dump, no waypoint
+- Five paragraphs or fewer; no reproducer itinerary, no stack dump, no waypoint
   function names, nothing a reader can delete without weakening the proof.
 - A stranger to the subsystem can follow paragraph 1 without looking anything up.
 - The broken assumption, the code that relies on it, and the mechanism that
@@ -269,6 +329,13 @@ excerpt is, with a tab.
 - The consequence appears at least as a clause, or an existing assertion is the
   consequence and the message names the invariant it protects; a number appears
   only with its mechanism.
+- A paragraph states the user-visible effect and what it takes to trigger it,
+  and the claim holds on a kernel without sanitisers.
+- One clause says where the bug came from (fuzzer or the field) and whether a
+  reproducer exists; the linked report is never the only place this appears.
+- Where a sanitiser title names something the bug is not, the message says so.
+- `Cc: stable`, if present, is justified in the body and not only in the
+  trailer.
 - The fix sentence is imperative, and its placement — or why it is not a revert
   — is justified if non-obvious.
 - Any commit cited in prose is written `commit <sha12> ("subject")`.
