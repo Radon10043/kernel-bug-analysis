@@ -7,7 +7,7 @@ Usage: verify_kernel_fix.sh [syz-crush-args...]
 
 Run from the Linux kernel bug-analysis repository root after applying a patch.
 The script runs:
-  1. make kernel
+  1. make linux
   2. ./syzkaller/bin/syz-crush [syz-crush-args...]
 
 Logs are written under ${TMPDIR:-/tmp}/linux-kernel-bugfix-logs by default.
@@ -43,9 +43,9 @@ if [[ ! -x "${syz_crush}" ]]; then
   exit 2
 fi
 
-printf '\n==> Building kernel: make kernel\n'
-if ! make kernel 2>&1 | tee "${build_log}"; then
-  printf '\nmake kernel failed; see %s\n' "${build_log}" >&2
+printf '\n==> Building kernel: make linux\n'
+if ! make linux 2>&1 | tee "${build_log}"; then
+  printf '\nmake linux failed; see %s\n' "${build_log}" >&2
   exit 1
 fi
 

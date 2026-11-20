@@ -249,7 +249,7 @@ working-tree diff:
 
     { printf 'From: X <x@y>\nSubject: [PATCH] '; cat commit.txt;
       echo '---'; git diff; } > /tmp/m.patch
-    (cd linux && ./scripts/checkpatch.pl --strict /tmp/m.patch)
+    (cd kernel/linux && ./scripts/checkpatch.pl --strict /tmp/m.patch)
 
 ## Revisions
 
