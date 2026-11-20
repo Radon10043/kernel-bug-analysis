@@ -1,6 +1,7 @@
 #!/bin/bash
 
-WORKSPACE=$(dirname $0)/..
+WORKSPACE=$(cd "$(dirname "$0")/../.." && pwd)
+mkdir -p "$WORKSPACE/repro"
 qemu-system-x86_64 \
     -m 2048 \
     -smp 2,sockets=2,cores=1,threads=1 \
@@ -14,7 +15,7 @@ qemu-system-x86_64 \
     -cpu host,migratable=off \
     -device e1000,netdev=net0 \
     -netdev user,id=net0,restrict=on,hostfwd=tcp:127.0.0.1:2324-:22 \
-    -hda $WORKSPACE/debian/trixie/trixie.img \
+    -hda "$WORKSPACE/image/debian/trixie/trixie.img" \
     -snapshot \
-    -kernel $WORKSPACE/linux/arch/x86/boot/bzImage \
-    -append "root=/dev/sda console=ttyS0 ftrace_dump_on_oops" 2>&1 | tee repro/kernel.log
+    -kernel "$WORKSPACE/kernel/linux/arch/x86/boot/bzImage" \
+    -append "root=/dev/sda console=ttyS0 ftrace_dump_on_oops" 2>&1 | tee "$WORKSPACE/repro/kernel.log"
