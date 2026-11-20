@@ -1,8 +1,11 @@
-debian/
 email/
 .codex-local/
 
 repro/*
-!repro/.gitkeep
 patch/*
+kernel/*
+image/*
+!repro/.gitkeep
 !patch/.gitkeep
+!kernel/.gitkeep
+!image/.gitkeep
