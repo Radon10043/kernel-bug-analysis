@@ -1,5 +1,6 @@
 email/
 .codex-local/
+syzkaller/
 
 repro/*
 patch/*
