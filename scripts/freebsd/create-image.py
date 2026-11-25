@@ -10,10 +10,10 @@
 #   scripts/freebsd/create-image.py -i 15.0 -k 15.0.0 -c config/freebsd/freebsd.config
 #
 # how it works:
-#   1. download the official VM image and resize it
-#   2. drive the serial console to escape to the loader prompt, switch console
-#      to comconsole, log in as root and enable sshd with our public key
-#   3. everything else (packages, kernel build, reboot, verify) goes through ssh
+#   - download the official VM image and resize it
+#   - drive the serial console to escape to the loader prompt, switch console
+#     to comconsole, log in as root and enable sshd with our public key
+#   - everything else (packages, kernel build, reboot, verify) goes through ssh
 
 import argparse
 import lzma

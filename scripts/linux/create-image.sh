@@ -144,7 +144,7 @@ sudo rm -rf $DIR
 sudo mkdir -p $DIR
 sudo chmod 0755 $DIR
 
-# 1. debootstrap stage
+# Primary debootstrap stage
 
 DEBOOTSTRAP_PARAMS="--arch=$DEBARCH --include=$PREINSTALL_PKGS --components=main,contrib,non-free,non-free-firmware $RELEASE $DIR"
 if [ $FOREIGN = "true" ]; then
@@ -167,7 +167,7 @@ if [ $RET != 0 ] && [ $DEBARCH != "riscv64" ]; then
     sudo --preserve-env=http_proxy,https_proxy,ftp_proxy,no_proxy debootstrap $DEBOOTSTRAP_PARAMS
 fi
 
-# 2. debootstrap stage: only necessary if target != host architecture
+# Foreign-architecture second debootstrap stage: only necessary if target != host architecture
 
 if [ $FOREIGN = "true" ]; then
     sudo cp $(which qemu-$ARCH-static) $DIR/$(which qemu-$ARCH-static)

@@ -14,8 +14,6 @@ WORKSPACE=$(cd "$(dirname "$0")/../.." && pwd)
 SOURCEDIR="${FREEBSD_SRC:-$WORKSPACE/kernel/freebsd}"
 if [[ -n "${FREEBSD_CONFIG:-}" ]]; then
     CONFIG="$FREEBSD_CONFIG"
-elif [[ -f "$WORKSPACE/issue/freebsd.config" ]]; then
-    CONFIG="$WORKSPACE/issue/freebsd.config"
 else
     CONFIG="$WORKSPACE/config/freebsd/freebsd.config"
 fi

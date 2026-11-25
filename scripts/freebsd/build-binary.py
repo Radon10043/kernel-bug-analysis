@@ -9,10 +9,10 @@
 #       [-k image/freebsd/freebsd.id_rsa] [--syzkaller syzkaller]
 #
 # how it works:
-#   1. boot the FreeBSD image with -snapshot, so the image is never modified
-#   2. copy the syzkaller source tree from the host into the VM through ssh,
-#      leaving out bin/, .git, and .descriptions; git revision is computed on host
-#   3. run `gmake target` in the VM and copy bin/freebsd_amd64 back
+#   - boot the FreeBSD image with -snapshot, so the image is never modified
+#   - copy the syzkaller source tree from the host into the VM through ssh,
+#     leaving out bin/, .git, and .descriptions; git revision is computed on host
+#   - run `gmake target` in the VM and copy bin/freebsd_amd64 back
 
 import argparse
 import os
