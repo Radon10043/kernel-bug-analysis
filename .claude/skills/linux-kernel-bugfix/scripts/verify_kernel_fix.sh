@@ -7,8 +7,8 @@ Usage: verify_kernel_fix.sh [syz-crush-args...]
 
 Run from the Linux kernel bug-analysis repository root after applying a patch.
 The script runs:
-  1. make linux
-  2. ./syzkaller/bin/syz-crush [syz-crush-args...]
+  - make linux
+  - ./syzkaller/bin/syz-crush [syz-crush-args...]
 
 Logs are written under ${TMPDIR:-/tmp}/linux-kernel-bugfix-logs by default.
 Set LOG_DIR to override the log root.

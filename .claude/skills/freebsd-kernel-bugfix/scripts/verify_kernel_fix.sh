@@ -7,9 +7,9 @@ Usage: verify_kernel_fix.sh [syz-crush-args...]
 
 Run from the kernel-bug-analysis repository root after applying a FreeBSD patch.
 The script runs:
-  1. make freebsd
-  2. make freebsd-install
-  3. ./syzkaller/bin/syz-crush [syz-crush-args...]
+  - make freebsd
+  - make freebsd-install
+  - ./syzkaller/bin/syz-crush [syz-crush-args...]
 
 Environment variables forwarded to make:
   FREEBSD_SRC, FREEBSD_CONFIG, FREEBSD_IMAGE, FREEBSD_SSHKEY, FREEBSD_OVERLAY, JOBS

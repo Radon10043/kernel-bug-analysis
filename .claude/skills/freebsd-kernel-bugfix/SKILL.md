@@ -18,61 +18,66 @@ reproduces.
 
 ## Workflow
 
-1. Preserve the bug signal before editing:
-   - Identify the crash title (`panic:`, `Fatal trap`, `KASSERT`, `KASAN`, `WITNESS`),
-     faulting subsystem, KDB stack trace, reproducer, and kernel config (`issue/freebsd.config`
-     or `config/freebsd/freebsd.config`).
-   - Search the touched subsystem in `kernel/freebsd/sys/` for existing locking (`mtx`, `sx`,
-     `rwlock`, `rmlock`, `epoch`), lifetime/refcount (`refcount_acquire`/`release`),
-     bounds-checking, and error-path patterns before inventing a new pattern.
-   - Treat syzkaller output as a reproducer signal, not proof of root cause. Confirm the
-     failing path in source.
+### Preserve the bug signal before editing
 
-2. Patch conservatively:
-   - Prefer the smallest fix that addresses the proven lifetime, concurrency, validation,
-     or error-handling bug.
-   - Follow FreeBSD `style(9)` and nearby subsystem conventions. Avoid broad refactors,
-     unrelated cleanups, and behavior changes outside the failing path.
-   - Keep syscall/ioctl ABI, locking order (`WITNESS`), `M_NOWAIT` vs `M_WAITOK`
-     allocation context, epoch sections, and UMA/malloc ownership in mind.
+- Identify the crash title (`panic:`, `Fatal trap`, `KASSERT`, `KASAN`, `WITNESS`),
+  faulting subsystem, KDB stack trace, reproducer, and kernel config
+  (`config/freebsd/freebsd.config`).
+- Search the touched subsystem in `kernel/freebsd/sys/` for existing locking (`mtx`, `sx`,
+  `rwlock`, `rmlock`, `epoch`), lifetime/refcount (`refcount_acquire`/`release`),
+  bounds-checking, and error-path patterns before inventing a new pattern.
+- Treat syzkaller output as a reproducer signal, not proof of root cause. Confirm the
+  failing path in source.
 
-3. Validate every patch from the repository working directory:
+### Patch conservatively
 
-   ```bash
-   make freebsd
-   FREEBSD_IMAGE=image/freebsd/freebsd.qcow2 \
-   FREEBSD_OVERLAY=repro/freebsd-test.qcow2 \
-       make freebsd-install
-   ./syzkaller/bin/syz-crush -config repro/repro.cfg <repro-log-or-prog>
-   ```
+- Prefer the smallest fix that addresses the proven lifetime, concurrency, validation,
+  or error-handling bug.
+- Follow FreeBSD `style(9)` and nearby subsystem conventions. Avoid broad refactors,
+  unrelated cleanups, and behavior changes outside the failing path.
+- Keep syscall/ioctl ABI, locking order (`WITNESS`), `M_NOWAIT` vs `M_WAITOK`
+  allocation context, epoch sections, and UMA/malloc ownership in mind.
 
-   This repo keeps a FreeBSD `syz-crush` manager config template at
-   `config/freebsd/repro.cfg`. Make sure the working copy's `image` points to the exact
-   QCOW2 image (or overlay) into which `make freebsd-install` just installed the kernel,
-   `sandbox` is `"none"` unless reproducing under `"setuid"`, and
-   `syzkaller/bin/freebsd_amd64/` exists (built via `make syzutils-freebsd`).
+### Validate every patch from the repository working directory
 
-   Do not claim the bug is fixed unless the kernel build succeeds, the kernel is
-   installed into the tested VM image, and reproduction no longer triggers the target
-   crash.
+```bash
+make freebsd
+FREEBSD_IMAGE=image/freebsd/freebsd.qcow2 \
+FREEBSD_OVERLAY=repro/freebsd-test.qcow2 \
+    make freebsd-install
+./syzkaller/bin/syz-crush -config repro/repro.cfg <repro-log-or-prog>
+```
 
-   Kernel builds (especially the initial `kernel-toolchain` build) and `syz-crush` runs are
-   long-running; run them with a generous timeout or in the background.
+This repo keeps a FreeBSD `syz-crush` manager config template at
+`config/freebsd/repro.cfg`. Make sure the working copy's `image` points to the exact
+QCOW2 image (or overlay) into which `make freebsd-install` just installed the kernel,
+`sandbox` is `"none"` unless reproducing under `"setuid"`, and
+`syzkaller/bin/freebsd_amd64/` exists (built via `make syzutils-freebsd`).
 
-4. Interpret verification strictly:
-   - If `make freebsd` fails, fix the compile error before installing or testing.
-   - If `make freebsd-install` fails, check `repro/install-kernel.console.log` and do not
-     test against a stale image.
-   - If `syz-crush` (or single-shot repro) still reports the same crash, revisit the root
-     cause and adjust the patch.
-   - If a *different* crash appears, separate that signal from the original fix and state
-     the distinction.
-   - If validation cannot run because required images, SSH keys, `freebsd_amd64` binaries,
-     reproducers, or configs are missing, report that limitation explicitly.
+Do not claim the bug is fixed unless the kernel build succeeds, the kernel is
+installed into the tested VM image, and reproduction no longer triggers the target
+crash.
 
-5. Report the result with the files changed, the root-cause reasoning, and the exact
-   validation outcome. Include the command status for `make freebsd`,
-   `make freebsd-install`, and `./syzkaller/bin/syz-crush` (or `exec-c.sh` / `exec-syz.sh`).
+Kernel builds (especially the initial `kernel-toolchain` build) and `syz-crush` runs are
+long-running; run them with a generous timeout or in the background.
+
+### Interpret verification strictly
+
+- If `make freebsd` fails, fix the compile error before installing or testing.
+- If `make freebsd-install` fails, check `repro/install-kernel.console.log` and do not
+  test against a stale image.
+- If `syz-crush` (or single-shot repro) still reports the same crash, revisit the root
+  cause and adjust the patch.
+- If a *different* crash appears, separate that signal from the original fix and state
+  the distinction.
+- If validation cannot run because required images, SSH keys, `freebsd_amd64` binaries,
+  reproducers, or configs are missing, report that limitation explicitly.
+
+### Report the result
+
+Include the files changed, the root-cause reasoning, and the exact validation outcome,
+along with the command status for `make freebsd`, `make freebsd-install`, and
+`./syzkaller/bin/syz-crush` (or `exec-c.sh` / `exec-syz.sh`).
 
 ## Validation Helper
 

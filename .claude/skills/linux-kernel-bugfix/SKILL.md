@@ -11,34 +11,39 @@ Use this skill to keep Linux kernel bug fixes narrow, evidence-driven, and verif
 
 ## Workflow
 
-1. Preserve the bug signal before editing:
-   - Identify the crash title, report type, faulting subsystem, stack trace, reproducer, and relevant config or syzkaller artifacts.
-   - Search the touched subsystem for existing locking, lifetime, refcount, bounds-checking, and error-path patterns before inventing a new pattern.
-   - Treat syzkaller output as a reproducer signal, not proof of root cause. Confirm the failing path in source.
+### Preserve the bug signal before editing
 
-2. Patch conservatively:
-   - Prefer the smallest fix that addresses the proven lifetime, concurrency, validation, or error-handling bug.
-   - Follow nearby kernel style and helper APIs. Avoid broad refactors, unrelated cleanups, and behavior changes outside the failing path.
-   - Keep ABI, UAPI, locking order, RCU rules, reference ownership, and memory allocation context in mind.
+- Identify the crash title, report type, faulting subsystem, stack trace, reproducer, and relevant config or syzkaller artifacts.
+- Search the touched subsystem for existing locking, lifetime, refcount, bounds-checking, and error-path patterns before inventing a new pattern.
+- Treat syzkaller output as a reproducer signal, not proof of root cause. Confirm the failing path in source.
 
-3. Validate every patch from the repository working directory:
+### Patch conservatively
 
-   ```bash
-   make linux
-   ./syzkaller/bin/syz-crush
-   ```
+- Prefer the smallest fix that addresses the proven lifetime, concurrency, validation, or error-handling bug.
+- Follow nearby kernel style and helper APIs. Avoid broad refactors, unrelated cleanups, and behavior changes outside the failing path.
+- Keep ABI, UAPI, locking order, RCU rules, reference ownership, and memory allocation context in mind.
 
-   If the syzkaller task requires arguments, pass the task-specific arguments to `syz-crush` (this repo keeps a syz-crush manager config template at `config/linux/repro.cfg`, e.g. `./syzkaller/bin/syz-crush -config repro/repro.cfg <repro-log>`). Do not claim the bug is fixed unless the kernel build succeeds and `syz-crush` no longer reproduces the target crash.
+### Validate every patch from the repository working directory
 
-   Kernel builds and crash reproduction are long-running; run them with a generous `timeout` (or in the background) instead of assuming the default tool timeout is enough.
+```bash
+make linux
+./syzkaller/bin/syz-crush
+```
 
-4. Interpret verification strictly:
-   - If `make linux` fails, fix the compile error before running crash validation.
-   - If `syz-crush` still reports the same crash, revisit the root cause and adjust the patch.
-   - If `syz-crush` reports a different crash, separate that signal from the original fix and state the distinction.
-   - If validation cannot run because required binaries, reproducers, or configs are missing, report that limitation explicitly.
+If the syzkaller task requires arguments, pass the task-specific arguments to `syz-crush` (this repo keeps a syz-crush manager config template at `config/linux/repro.cfg`, e.g. `./syzkaller/bin/syz-crush -config repro/repro.cfg <repro-log>`). Do not claim the bug is fixed unless the kernel build succeeds and `syz-crush` no longer reproduces the target crash.
 
-5. Report the result with the files changed, the root-cause reasoning, and the exact validation outcome. Include the command status for `make linux` and `./syzkaller/bin/syz-crush`.
+Kernel builds and crash reproduction are long-running; run them with a generous `timeout` (or in the background) instead of assuming the default tool timeout is enough.
+
+### Interpret verification strictly
+
+- If `make linux` fails, fix the compile error before running crash validation.
+- If `syz-crush` still reports the same crash, revisit the root cause and adjust the patch.
+- If `syz-crush` reports a different crash, separate that signal from the original fix and state the distinction.
+- If validation cannot run because required binaries, reproducers, or configs are missing, report that limitation explicitly.
+
+### Report the result
+
+Include the files changed, the root-cause reasoning, and the exact validation outcome, along with the command status for `make linux` and `./syzkaller/bin/syz-crush`.
 
 ## Validation Helper
 

@@ -23,14 +23,14 @@ commit log in.
 
 Order it **symptom → cause → impact**, roughly a paragraph each:
 
-1. **What the report literally says**, restated as a state — "the WARNING
-   triggers because a folio of the DAT metadata file is still dirty where
-   `nilfs_copy_back_pages()` expects a clean one" — then the least context
-   needed to explain why that code runs at all.
-2. **Why that state arises.** The regressing commit if there is one, then the
-   concrete mechanism, carrying every condition it depends on.
-3. **What it costs.** The state left behind, plus the crash under
-   `panic_on_warn` when the WARNING is the whole bug.
+- **What the report literally says**, restated as a state — "the WARNING
+  triggers because a folio of the DAT metadata file is still dirty where
+  `nilfs_copy_back_pages()` expects a clean one" — then the least context
+  needed to explain why that code runs at all.
+- **Why that state arises.** The regressing commit if there is one, then the
+  concrete mechanism, carrying every condition it depends on.
+- **What it costs.** The state left behind, plus the crash under
+  `panic_on_warn` when the WARNING is the whole bug.
 
 Chronological order — untrusted input, call path, symptom — is the *commit
 message's* shape and reads badly here: it makes the reader hold a subsystem

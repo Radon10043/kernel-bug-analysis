@@ -60,40 +60,40 @@ against the source, and the excerpt is what makes it checkable.
 
 ## Shape
 
-Five parts, in this order.
+Include these parts, in this order:
 
-1. **Subject** — `subsys: <imperative phrase>`, under 75 chars, no trailing
-   period. Name the change, not the symptom: `gfs2: reject rgrp bitmaps that do
-   not fit in their block`, not `gfs2: fix KASAN use-after-free`. Keep the
-   subject **byte-identical across revisions** so threads and CI runs stay
-   linked to one patch.
+- **Subject** — `subsys: <imperative phrase>`, under 75 chars, no trailing
+  period. Name the change, not the symptom: `gfs2: reject rgrp bitmaps that do
+  not fit in their block`, not `gfs2: fix KASAN use-after-free`. Keep the
+  subject **byte-identical across revisions** so threads and CI runs stay
+  linked to one patch.
 
-2. **The assumption**, in plain terms — what the code is trying to do and what
-   it takes for granted, ending at the check or the consumer that fails. Open
-   with the purpose, not the call chain: "while GC runs, nilfs2 keeps a shadow
-   copy of the DAT file's page cache so it can roll back" orients a stranger in
-   one line. Then the short **verbatim excerpt** of the line that assumes it.
+- **The assumption**, in plain terms — what the code is trying to do and what
+  it takes for granted, ending at the check or the consumer that fails. Open
+  with the purpose, not the call chain: "while GC runs, nilfs2 keeps a shadow
+  copy of the DAT file's page cache so it can roll back" orients a stranger in
+  one line. Then the short **verbatim excerpt** of the line that assumes it.
 
-3. **Why the assumption does not hold.** For an unvalidated input: which
-   on-disk or userspace field, and which helper consumes it before validating.
-   For a regression: which commit made the guarantee best-effort, quoted as
-   `commit <sha12> ("subject")`. Then the mechanism that produces the bad state
-   — the two or three facts that have to be true at once, stated as facts about
-   the code, not as a replay of the reproducer.
+- **Why the assumption does not hold.** For an unvalidated input: which
+  on-disk or userspace field, and which helper consumes it before validating.
+  For a regression: which commit made the guarantee best-effort, quoted as
+  `commit <sha12> ("subject")`. Then the mechanism that produces the bad state
+  — the two or three facts that have to be true at once, stated as facts about
+  the code, not as a replay of the reproducer.
 
-4. **The impact**, two or three sentences. What a user sees when the bug fires
-   — a crash, silent memory corruption, data loss, a hang, a filesystem forced
-   read-only — and what it takes to get there: a crafted image plus
-   CAP_SYS_ADMIN, or an unprivileged syscall, or a specific mount option. Then
-   one clause of provenance, and, when the patch carries `Cc: stable`, one
-   clause saying why it qualifies.
+- **The impact**, two or three sentences. What a user sees when the bug fires
+  — a crash, silent memory corruption, data loss, a hang, a filesystem forced
+  read-only — and what it takes to get there: a crafted image plus
+  CAP_SYS_ADMIN, or an unprivileged syscall, or a specific mount option. Then
+  one clause of provenance, and, when the patch carries `Cc: stable`, one
+  clause saying why it qualifies.
 
-5. **The fix, in imperative mood**, one or two sentences. If a reviewer would
-   ask "why is the check *there* and not in that branch?", or if the obvious
-   alternative is to revert the commit named in `Fixes:`, answer in half a
-   sentence — `rather than making nilfs_clear_folio_dirty() force-clear busy
-   buffer heads again` is what tells the author of that commit you did not
-   undo their fix.
+- **The fix, in imperative mood**, one or two sentences. If a reviewer would
+  ask "why is the check *there* and not in that branch?", or if the obvious
+  alternative is to revert the commit named in `Fixes:`, answer in half a
+  sentence — `rather than making nilfs_clear_folio_dirty() force-clear busy
+  buffer heads again` is what tells the author of that commit you did not
+  undo their fix.
 
 Then a blank line, then the trailers.
 
@@ -202,15 +202,15 @@ points at whichever commit last touched the line.
     git log --diff-filter=A --follow --oneline -- <path>
     git describe --contains <sha>                      # first release
 
-Confirm three things before writing the tag, in these words:
+Confirm all of the following before writing the tag, in these words:
 
-1. The defect is present at that commit — for a regression, the guarantee the
-   code relies on existed at `<sha>^` and the commit removed it. An early
-   `return` added to a helper is the usual shape.
-2. No later commit removed or restored a check in between. Enumerate every
-   commit touching the file since `<sha>` and check each one.
-3. The bad path was already reachable then — the assertion that fires, and the
-   other preconditions, predate `<sha>`.
+- The defect is present at that commit — for a regression, the guarantee the
+  code relies on existed at `<sha>^` and the commit removed it. An early
+  `return` added to a helper is the usual shape.
+- No later commit removed or restored a check in between. Enumerate every
+  commit touching the file since `<sha>` and check each one.
+- The bad path was already reachable then — the assertion that fires, and the
+  other preconditions, predate `<sha>`.
 
 Two traps:
 
@@ -242,7 +242,7 @@ Two traps:
 - **Imperative mood.** `submitting-patches.rst:94` is explicit: "Describe your
   changes in imperative mood, e.g. 'make xyzzy do frotz'". Drop "we can",
   "this patch", "In order to fix this issue".
-- Line 2 must be blank; no diff or `---` inside the log body.
+- A blank line must immediately follow the subject line; no diff or `---` inside the log body.
 
 To check a message that is not yet an exported patch, splice it onto the
 working-tree diff:
@@ -269,10 +269,11 @@ working-tree diff:
 
 ## Worked example
 
-The shape above, at the length above. Paragraph 1 sets up the assumption for a
-stranger, the excerpt makes it checkable, paragraph 2 is the mechanism with no
-reproducer trivia, paragraph 3 is the impact with its reach and provenance,
-and paragraph 4 is the fix plus why it is not a revert.
+The shape above, at the length above. The opening paragraph sets up the
+assumption for a stranger, the excerpt makes it checkable, the next paragraph
+gives the mechanism with no reproducer trivia, the impact paragraph states
+reach and provenance, and the closing paragraph states the fix plus why it is
+not a revert.
 The whole example is indented here; in the real message only the code
 excerpt is, with a tab.
 
@@ -323,7 +324,7 @@ excerpt is, with a tab.
 - Subject names the change, under 75 chars, unchanged from the previous revision.
 - Five paragraphs or fewer; no reproducer itinerary, no stack dump, no waypoint
   function names, nothing a reader can delete without weakening the proof.
-- A stranger to the subsystem can follow paragraph 1 without looking anything up.
+- A stranger to the subsystem can follow the opening paragraph without looking anything up.
 - The broken assumption, the code that relies on it, and the mechanism that
   breaks it are each named; the excerpt is verbatim.
 - The consequence appears at least as a clause, or an existing assertion is the
