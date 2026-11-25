@@ -1,9 +1,9 @@
 # CLAUDE.md
 
-Workspace for analyzing and fixing Linux and FreeBSD kernel bugs found by syzkaller, and
-for preparing the resulting patches for upstream submission. Read this before touching
-anything; the `/linux-kernel-bugfix` and `/freebsd-kernel-bugfix` skills carry the longer
-per-patch checklists.
+Workspace for analyzing and fixing Linux, FreeBSD, and Asterinas kernel bugs found by
+syzkaller, and for preparing the resulting patches for upstream submission.
+Read this before touching anything; the `/linux-kernel-bugfix`, `/freebsd-kernel-bugfix`,
+and `/asterinas-kernel-bugfix` skills carry the longer per-patch checklists.
 
 ## Layout
 
@@ -11,30 +11,36 @@ per-patch checklists.
 |---|---|
 | `kernel/linux/` | Linux kernel tree under test. Built by `make linux`; config has KASAN, UBSAN, PROVE_LOCKING, KCOV, FAULT_INJECTION on. |
 | `kernel/freebsd/` | FreeBSD (`freebsd-src`) kernel tree under test. Cross-built by `make freebsd` (outputs to `kernel/freebsd/build/dist/boot/kernel`) and installed into a VM image by `make freebsd-install`. |
-| `syzkaller/` | syzkaller checkout; host binaries in `syzkaller/bin/` (`syz-crush`, `syz-symbolize`, ...) and target binaries in `syzkaller/bin/linux_amd64/` and `syzkaller/bin/freebsd_amd64/`. Built by `make syzutils-linux` / `make syzutils-freebsd`. |
+| `kernel/asterinas/` | Asterinas (`asterinas`) Rust framekernel tree under test. Built by `make asterinas` (outputs `bzImage` and unstripped `vmlinux` to `kernel/asterinas/`) and installed into a VM image by `make asterinas-install`. |
+| `syzkaller/` | syzkaller checkout; host binaries in `syzkaller/bin/` (`syz-crush`, `syz-symbolize`, ...) and target binaries in `syzkaller/bin/linux_amd64/` and `syzkaller/bin/freebsd_amd64/`. Built by `make syzutils-linux` / `make syzutils-freebsd` / `make syzutils-asterinas`. |
 | `config/linux/repro.cfg` | Linux syz-manager/syz-crush config **template**; `__WORKDIR__` / `__KERNEL__` / `__TRIXIE__` / `__SYZKALLER__` are placeholders to resolve into a working copy. |
 | `config/freebsd/repro.cfg` | FreeBSD syz-manager/syz-crush config **template**; `__WORKDIR__` / `__KERNEL_OBJ__` / `__KERNEL_SRC__` / `__IMAGE__` / `__SSHKEY__` / `__SYZKALLER__` are placeholders to resolve into a working copy. |
-| `config/freebsd/freebsd.config` | Default FreeBSD kernel config (`COVERAGE`, `KCOV`, `KASAN`, `DIAGNOSTIC`, `TCPHPTS`, `RATELIMIT`). Overridden automatically if `issue/freebsd.config` exists. |
+| `config/freebsd/freebsd.config` | Default FreeBSD kernel config (`COVERAGE`, `KCOV`, `KASAN`, `DIAGNOSTIC`, `TCPHPTS`, `RATELIMIT`). |
+| `config/asterinas/asterinas.toml` | Default Asterinas TOML build config (`kcov = false`, `kasan = false`, `debug-assertions = true`, `overflow-checks = true`); enable `kcov` / `kasan` in the TOML when testing a KCOV/KASAN-patched tree. |
 | `scripts/linux/` | Linux helpers: `qemu.sh` (boot), `exec-c.sh` / `exec-syz.sh` (run reproducer in the VM), `symbolize.sh`, `create-image.sh`. |
-| `scripts/freebsd/` | FreeBSD helpers: `build.sh` (cross-build or native build), `install-kernel.py` (install built kernel into a QCOW2 image or overlay), `create-image.py` (create FreeBSD VM image), `build-binary.py` (build `syzkaller/bin/freebsd_amd64/*` inside a VM), `qemu.sh`, `exec-c.sh`, `exec-syz.sh`, `symbolize.sh`. |
+| `scripts/freebsd/` | FreeBSD helpers: `build.sh` (cross-build or native build), `install-kernel.py` (install built kernel into a QCOW2 image or overlay), `create-image.py` (create FreeBSD VM image), `build-binary.py` (build `syzkaller/bin/freebsd_amd64/*` inside a VM), `qemu.sh`, `exec-c.sh`, `exec-syz.sh`, `symbolize.sh`, `prog2c.sh`. |
+| `scripts/asterinas/` | Asterinas helpers: `build.sh` (build `bzImage` + `vmlinux`), `install-kernel.sh` (install `bzImage` into a raw disk image or sparse copy), `create-image.sh` (create/update NixOS VM image and scratch disks), `qemu.sh`, `exec-c.sh`. |
 
-Everything else — VM images and keys (`image/debian/`, `image/freebsd/`), reproducers (`repro/`,
-`issue/`), boot logs, exported patches (`patch/`), mail (`email/`) — is untracked and its
-layout is not fixed. Read the Makefile and `scripts/` for the paths actually in use rather
-than assuming; other kernel checkouts or images may exist outside this repository, but
-`kernel/linux/` and `kernel/freebsd/` here are the trees under test.
+Everything else — VM images and keys (`image/debian/`, `image/freebsd/`, `image/asterinas/`),
+reproducers (`repro/`), boot logs, exported patches (`patch/`), mail (`email/`) —
+is untracked and its layout is not fixed. Read the Makefile and `scripts/` for the paths
+actually in use rather than assuming; other kernel checkouts or images may exist outside
+this repository, but `kernel/linux/`, `kernel/freebsd/`, and `kernel/asterinas/` here are
+the trees under test.
 
 ## Hard rules
 
 - **Never claim a bug is fixed without evidence.** "Fixed" means the kernel built (and for
-  FreeBSD, was installed into the tested VM image) and the reproducer no longer triggers
-  the crash. Anything less gets reported as what it is: not built, not installed, not run,
-  or ran differently.
+  FreeBSD and Asterinas, was installed into the tested VM image) and the reproducer no
+  longer triggers the crash. Anything less gets reported as what it is: not built, not
+  installed, not run, or ran differently.
 - Do not modify or delete VM images, SSH keys, saved crash artifacts, or exported
   patches unless asked. They are untracked and there is no second copy. For FreeBSD
   testing, prefer installing kernels into a copy-on-write QCOW2 overlay via
   `FREEBSD_OVERLAY=repro/freebsd-test.qcow2 make freebsd-install` (or
-  `scripts/freebsd/install-kernel.py -o ...`) so base images stay untouched.
+  `scripts/freebsd/install-kernel.py -o ...`); for Asterinas testing, prefer installing
+  kernels into a sparse image copy via `ASTERINAS_OVERLAY=repro/asterinas-test.img make asterinas-install`
+  (or `scripts/asterinas/install-kernel.sh -o ...`) so base images stay untouched.
 - When answer the user, explain the root cause of the issue, or write the patch commit
   message, please in a way that even a fool could understand.
 
@@ -50,6 +56,11 @@ make freebsd             # cross-build FreeBSD kernel into kernel/freebsd/build/
 make freebsd-install     # install built kernel into $(FREEBSD_IMAGE) (or $(FREEBSD_OVERLAY))
 make syzutils-freebsd    # build host syzkaller tools + bin/freebsd_amd64 inside a FreeBSD VM
 
+# Asterinas
+make asterinas           # build Asterinas bzImage + unstripped vmlinux into kernel/asterinas/
+make asterinas-install   # install built bzImage into $(ASTERINAS_IMAGE) (or $(ASTERINAS_OVERLAY))
+make syzutils-asterinas  # rebuild Linux-ABI host + target syzkaller binaries
+
 # Shared
 make cleanrepro          # clear reproduction artifacts between runs
 ```
@@ -58,9 +69,10 @@ make cleanrepro          # clear reproduction artifacts between runs
 anything worth keeping before running it.
 
 A kernel build takes tens of minutes on a cold tree (incremental FreeBSD `buildkernel`
-after `kernel-toolchain` is much faster), and a `syz-crush` run is longer. Run both with a
-large explicit timeout or in the background — never assume the default tool timeout is
-enough, and never kill a build early and guess at the result.
+after `kernel-toolchain` and incremental Asterinas Cargo builds are much faster), and a
+`syz-crush` run is longer. Run both with a large explicit timeout or in the background —
+never assume the default tool timeout is enough, and never kill a build early and guess
+at the result.
 
 ### Single-shot reproduction, one VM
 
@@ -86,6 +98,17 @@ scripts/freebsd/exec-syz.sh                          # run repro/repro.syz under
 scripts/freebsd/symbolize.sh                         # parse/extract crash reports from repro/kernel.log
 ```
 
+Asterinas:
+```bash
+# QEMU boots Asterinas via OVMF UEFI from the GPT disk image.
+# After `make asterinas`, install into a sparse image copy before booting:
+scripts/asterinas/install-kernel.sh -i image/asterinas/asterinas.img -o repro/asterinas-test.img
+
+scripts/asterinas/qemu.sh -i repro/asterinas-test.img  # boots VM (-snapshot), ssh on port 10022,
+                                                       # serial console teed to repro/kernel.log
+scripts/asterinas/exec-c.sh                            # static-compile on host + scp + run repro/repro.c
+```
+
 ### Statistical reproduction / fix verification, many VMs
 
 ```bash
@@ -101,6 +124,10 @@ Before trusting a `syz-crush` result, check the manager config:
 - **FreeBSD**: `image` must be the `.qcow2` image (or overlay) into which you installed
   the kernel you just built, `sandbox` should be `"none"` unless reproducing under
   `"setuid"`, and `syzkaller/bin/freebsd_amd64/` must exist.
+- **Asterinas**: `image` must be the raw `.img` file (or copy) into which you installed
+  the `bzImage` you just built, `kernel_obj` and `kernel_src` must point to the matching
+  `kernel/asterinas` tree containing `vmlinux`, and `syzkaller/` must include Asterinas
+  report/executor support so `syz-crush` recognizes Rust panics and KASAN splats.
 
 ### Low-cost debug logging
 
@@ -108,6 +135,9 @@ Before trusting a `syz-crush` result, check the manager config:
   output is dumped after a crash (see README.md).
 - **FreeBSD**: use `printf()` or `KTR` (`CTR*`) for serial/panic diagnostics; KDB prints
   symbolic stack backtraces directly on panic/trap.
+- **Asterinas**: use `ostd::early_println!()` (or `log::error!()`, since default
+  `loglevel=error`) for serial console diagnostics; pass `--log-level info` (or `debug`)
+  to `scripts/asterinas/build.sh` when broader subsystem logs are needed.
 
 ## Analysis
 
@@ -129,27 +159,31 @@ Before trusting a `syz-crush` result, check the manager config:
 
 - Smallest fix that closes the proven hole. No drive-by cleanups, no renames outside
   the failing path, no behavior changes the report does not justify.
-- Respect UAPI/ABI, locking order (Linux lockdep/RCU; FreeBSD WITNESS/sx/mtx/epoch/UMA),
-  allocation context (`M_NOWAIT` vs `M_WAITOK` on FreeBSD; `GFP_*` on Linux), and error
-  paths.
+- Respect UAPI/ABI, locking order (Linux lockdep/RCU; FreeBSD WITNESS/sx/mtx/epoch/UMA;
+  Asterinas `SpinLock`/`Mutex`/`RwLock`/`RwMutex` and IRQ/preempt guards), allocation
+  context (`M_NOWAIT` vs `M_WAITOK` on FreeBSD; `GFP_*` on Linux), and error paths.
 - **Linux**: run `kernel/linux/scripts/checkpatch.pl --strict` on the patch before
   handing it over. Export each revision as `vN-0001-<subject>.patch` and keep the older
   ones.
 - **FreeBSD**: follow FreeBSD `style(9)` (tabs, indentation, declarations at block top,
   no C++ comments in C files) and FreeBSD Phabricator / Bugzilla / commit-message
   conventions (`Fixes:`, `MFC after:`, `Reported by:`, `Reviewed by:`).
+- **Asterinas**: respect the framekernel safety boundary (`unsafe` is strictly confined to
+  `ostd/`; `kernel/` forbids `unsafe`), return appropriate `Errno` values instead of
+  panicking on untrusted input, and format with `rustfmt` (`make format` / `make check` in
+  `kernel/asterinas`).
 
 Linux commit-message shape used here (the most recent exported revision is the reference):
 
-1. What a crafted input can contain / what the unvalidated field is.
-2. Which helper consumes it before validating, quoted as an indented code excerpt,
-   and the concrete consequence (OOB read, negative length, lock flood, hang).
-3. What the patch does about it, in imperative mood.
-4. Trailers: `Reported-by:`, `Closes:` (lore.kernel.org link), `Assisted-by:` naming the
-   assisting model, `Signed-off-by:`.
-5. A `Changes in vN:` block **below the `---`** so it stays out of git history. Keep the
-   whole revision list, newest first. Reference code with version-pinned
-   `elixir.bootlin.com` links.
+- What a crafted input can contain / what the unvalidated field is.
+- Which helper consumes it before validating, quoted as an indented code excerpt,
+  and the concrete consequence (OOB read, negative length, lock flood, hang).
+- What the patch does about it, in imperative mood.
+- Trailers: `Reported-by:`, `Closes:` (lore.kernel.org link), `Assisted-by:` naming the
+  assisting model, `Signed-off-by:`.
+- A `Changes in vN:` block **below the `---`** so it stays out of git history. Keep the
+  whole revision list, newest first. Reference code with version-pinned
+  `elixir.bootlin.com` links.
 
 Every one of those parts is prose for a maintainer who has never opened this file:
 plain language, one idea per sentence, each term explained where it first appears.
@@ -157,10 +191,10 @@ plain language, one idea per sentence, each term explained where it first appear
 ## Reporting back
 
 Every hand-off states: files changed, the root cause in one or two sentences, the exact
-status of `make linux` or `make freebsd` (and `make freebsd-install` for FreeBSD), the
-exact status of the reproducer run (including how long it ran), and anything left
-unverified. If validation could not run — missing image, missing reproducer,
-misconfigured manager config — say so instead of implying it passed.
+status of `make linux`, `make freebsd` + `make freebsd-install`, or `make asterinas` +
+`make asterinas-install`, the exact status of the reproducer run (including how long it
+ran), and anything left unverified. If validation could not run — missing image, missing
+reproducer, misconfigured manager config — say so instead of implying it passed.
 
 Write the hand-off the way Plain language demands: the verdict in the first line, one
 idea per sentence, no term left unexplained, and a plain statement of what was not
@@ -170,8 +204,9 @@ checked.
 
 ## Git Commit & Self-Containment Principles
 
-The rules below apply to commits in **this workspace repository** (upstream Linux and
-FreeBSD kernel patches follow their own upstream conventions under `## Patches`).
+The rules below apply to commits in **this workspace repository** (upstream Linux,
+FreeBSD, and Asterinas kernel patches follow their own upstream conventions under
+`## Patches`).
 
 - **Atomic Commits (Keep Commits Small)**:
   - Each commit should focus strictly on a single logical change (e.g., split
@@ -182,9 +217,17 @@ FreeBSD kernel patches follow their own upstream conventions under `## Patches`)
 - **Self-Containment & Consistency**:
   - **The repository must remain self-contained and runnable after every commit**.
   - Checking out any historical commit at any point in time must have consistent
-    paths, valid configs (`config/*/*.cfg`), clean script syntax (`bash -n`,
-    `python3 -m py_compile`), and working `Makefile` targets without breaking
-    existing Linux or FreeBSD analysis workflows.
+    paths, valid configs (`config/*/*.cfg`, `config/*/*.toml`), clean script syntax
+    (`bash -n`, `python3 -m py_compile`), and working `Makefile` targets without
+    breaking existing Linux, FreeBSD, or Asterinas analysis workflows.
+
+- **No Numbered Content**:
+  - Avoid numbered lists, numbered headings, and numbered step prefixes anywhere
+    in documentation, skills, configs, or script comments and `--help` output,
+    because hard-coded numbers become stale and brittle to maintain when items
+    are inserted, reordered, or removed.
+  - Use bullet points (`-`) and unnumbered descriptive headings or comments
+    instead.
 
 ---
 
@@ -203,8 +246,8 @@ structure:
 - **Root-level files**: Use the file name directly (e.g., `Makefile:`,
   `AGENTS.md:`, `README.md:`, `.gitignore:`).
 - **Subdirectory files**: Use the relative folder path (e.g., `scripts/linux:`,
-  `scripts/freebsd:`, `config/linux:`, `config/freebsd:`, `.claude/skills:`,
-  `.claude/hooks:`, `docs:`).
+  `scripts/freebsd:`, `scripts/asterinas:`, `config/linux:`, `config/freebsd:`,
+  `config/asterinas:`, `.claude/skills:`, `.claude/hooks:`, `docs:`).
 - **Common parent rollup**: When modifications are distributed across multiple
   subdirectories under the same top-level directory (e.g., `scripts/linux` and
   `scripts/freebsd` both under `scripts/`, or `config/linux` and `config/freebsd`
