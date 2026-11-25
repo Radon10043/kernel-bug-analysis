@@ -1,0 +1,48 @@
+# Default Asterinas kernel build configuration.
+# Used automatically by `make asterinas` / `scripts/asterinas/build.sh` unless
+# `ASTERINAS_CONFIG` (or `-c` / `--config`) is set.
+
+rust_toolchain = "nightly-2026-07-21"
+lto = false
+
+[instrumentation]
+kcov = false
+kasan = false
+
+[build]
+profile = "dev"
+features = []
+no_default_features = false
+strip_elf = true
+linux_x86_legacy_boot = false
+override_configs = [
+    "profile.dev.opt-level=2",
+    'profile.dev.package."*".opt-level=2',
+    "profile.dev.debug=true",
+    "profile.dev.debug-assertions=true",
+    "profile.dev.overflow-checks=true",
+    "profile.dev.package.aster-core.opt-level=0",
+    "profile.dev.package.aster-drm.opt-level=0",
+    "profile.dev.package.aster-simpledrm.opt-level=0",
+    "profile.dev.package.aster-virtio.opt-level=0",
+    "profile.dev.package.aster-nvme.opt-level=0",
+    "profile.dev.package.aster-bigtcp.opt-level=0",
+    "profile.dev.package.aster-fuse.opt-level=0",
+    "profile.dev.package.aster-block.opt-level=0",
+    "profile.dev.package.aster-input.opt-level=0",
+    "profile.dev.package.aster-framebuffer.opt-level=0",
+]
+
+[boot]
+method = "vmm-direct"
+kcmd_args = [
+    "loglevel=error",
+    "earlycon",
+    "console=ttyS0",
+]
+
+[grub]
+boot_protocol = "linux"
+
+[arch.x86_64]
+ostd_task_stack_size_in_pages = 64
