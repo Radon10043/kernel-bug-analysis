@@ -74,11 +74,11 @@ scripts/asterinas/create-image.sh -k kernel/asterinas -o image/asterinas
 
 # Install the newly built kernel into a sparse image copy (leaves base image untouched)
 ASTERINAS_IMAGE=image/asterinas/asterinas.img \
-ASTERINAS_OVERLAY=repro/asterinas-test.img \
+ASTERINAS_OVERLAY=image/asterinas/asterinas-test.img \
     make asterinas-install
 
 # Single-shot repro
-scripts/asterinas/qemu.sh -i repro/asterinas-test.img
+scripts/asterinas/qemu.sh -i image/asterinas/asterinas-test.img
 scripts/asterinas/exec-c.sh
 ```
 
