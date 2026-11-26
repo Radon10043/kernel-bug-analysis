@@ -1,5 +1,5 @@
 email/
-.codex-local/
+.workdir/
 syzkaller/
 
 repro/*
